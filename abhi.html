@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LIQUID LUSH | Elite Digital Bar & Delivery</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;500;800&display=swap');
+        
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background: #020205; color: white; overflow-x: hidden; }
+        .glass { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.1); }
+        
+        /* Side Cart Drawer */
+        #cart-drawer { transform: translateX(100%); transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1); }
+        #cart-drawer.open { transform: translateX(0); }
+
+        /* Custom Modals */
+        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 2000; align-items: center; justify-content: center; padding: 20px; }
+        .modal-overlay.active { display: flex; animation: fadeIn 0.4s ease; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        /* Live Tracking Styles */
+        .road { height: 4px; background: rgba(255,255,255,0.1); position: relative; width: 85%; margin: 60px auto; border-radius: 10px; }
+        .progress-line { height: 100%; background: #3b82f6; width: 0%; box-shadow: 0 0 20px #3b82f6; transition: width 0.1s linear; }
+        .bike { position: absolute; top: -25px; left: 0%; font-size: 28px; transition: left 0.1s linear; }
+        
+        .drink-card { transition: 0.5s; border: 1px solid rgba(255,255,255,0.05); }
+        .drink-card:hover { border-color: #3b82f6; transform: translateY(-10px); box-shadow: 0 20px 40px rgba(59, 130, 246, 0.15); }
+        
+        /* Hide scrollbar for clean look */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #020205; }
+        ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 10px; }
+    </style>
+</head>
+<body>
+
+    <div id="loader" class="fixed inset-0 bg-black z-[5000] flex items-center justify-center text-2xl font-bold tracking-widest italic">
+        ESTABLISHING <span class="text-blue-500 ml-2">THE BAR...</span>
+    </div>
+
+    <nav class="fixed top-0 w-full z-[1000] px-8 py-6 flex justify-between items-center glass border-b border-white/5">
+        <div class="text-2xl font-800 tracking-tighter italic">LIQUID<span class="text-blue-500">LUSH</span></div>
+        <button onclick="toggleCart()" class="bg-white text-black px-6 py-2 rounded-full font-bold flex items-center gap-2 hover:bg-blue-600 hover:text-white transition shadow-lg">
+            Cart <span id="cart-badge" class="bg-blue-600 text-white px-2 py-0.5 rounded-full text-xs">0</span>
+        </button>
+    </nav>
+
+    <div id="cart-drawer" class="fixed top-0 right-0 h-full w-full md:w-[420px] glass z-[1500] p-8 flex flex-col shadow-2xl">
+        <div class="flex justify-between items-center mb-10 border-b border-white/10 pb-4">
+            <h2 class="text-3xl font-800 italic">MY ORDER</h2>
+            <button onclick="toggleCart()" class="text-4xl hover:text-red-500">×</button>
+        </div>
+        <div id="cart-items" class="flex-grow overflow-y-auto space-y-4 pr-2">
+            <p class="text-gray-500 text-center mt-20 italic">Your bar is empty...</p>
+        </div>
+        <div class="border-t border-white/10 pt-6 mt-4">
+            <div class="flex justify-between text-2xl font-bold mb-6">
+                <span>Total:</span>
+                <span id="total-price" class="text-blue-500">₹0</span>
+            </div>
+            <button onclick="openCheckout()" class="w-full bg-blue-600 py-5 rounded-2xl font-black text-lg hover:scale-[1.02] active:scale-95 transition">PROCEED TO CHECKOUT</button>
+        </div>
+    </div>
+
+    <div id="checkout-modal" class="modal-overlay">
+        <div class="glass max-w-xl w-full p-10 rounded-[3rem] relative shadow-2xl border-white/20">
+            <button onclick="closeCheckout()" class="absolute top-6 right-8 text-2xl">×</button>
+            <h2 class="text-4xl font-800 mb-2">CHECKOUT</h2>
+            <p class="text-gray-400 mb-8">Almost there, cheers! 🥂</p>
+            <div class="space-y-4">
+                <input type="text" placeholder="Full Name" class="w-full bg-white/5 border border-white/10 p-5 rounded-2xl outline-none focus:border-blue-500 transition">
+                <input type="text" placeholder="Delivery Address" class="w-full bg-white/5 border border-white/10 p-5 rounded-2xl outline-none focus:border-blue-500 transition">
+                <div class="grid grid-cols-2 gap-4">
+                    <input type="number" placeholder="Phone Number" class="bg-white/5 border border-white/10 p-5 rounded-2xl outline-none">
+                    <select class="bg-white/5 border border-white/10 p-5 rounded-2xl outline-none text-gray-400">
+                        <option class="bg-black">UPI Payment</option>
+                        <option class="bg-black">Cash on Delivery</option>
+                    </select>
+                </div>
+                <button onclick="startTracking()" class="w-full bg-blue-600 py-5 rounded-2xl font-black mt-6 text-xl hover:bg-white hover:text-black transition">CONFIRM & PAY (₹<span id="pay-total">0</span>)</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="tracking-modal" class="modal-overlay">
+        <div class="glass max-w-3xl w-full p-12 rounded-[3.5rem] text-center border-blue-500/30">
+            <h2 class="text-4xl font-900 italic mb-2 tracking-tighter">ORDER <span class="text-blue-500">LIVE</span></h2>
+            <p id="status-text" class="text-blue-400 font-bold uppercase tracking-widest text-sm mb-12">Driver is reaching the bar...</p>
+            
+            <div class="h-64 bg-white/5 rounded-[2.5rem] mb-10 flex flex-col justify-center relative overflow-hidden">
+                <div class="absolute inset-0 bg-gradient-to-b from-blue-500/5 to-transparent opacity-30"></div>
+                <div class="flex justify-between px-12 text-[10px] font-black text-gray-500 uppercase tracking-[0.3em]">
+                    <span>Lush HQ Bar</span>
+                    <span>Your House</span>
+                </div>
+                <div class="road">
+                    <div id="progress-bar" class="progress-line"></div>
+                    <div id="bike-icon" class="bike">🛵</div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
+                <div class="glass p-4 rounded-2xl"><p class="text-[9px] text-gray-500">DRIVER</p><p class="font-bold">Rahul</p></div>
+                <div class="glass p-4 rounded-2xl"><p class="text-[9px] text-gray-500">TIME</p><p class="font-bold">12m</p></div>
+                <div class="glass p-4 rounded-2xl"><p class="text-[9px] text-gray-500">TEMP</p><p class="font-bold">Ice Cold</p></div>
+                <div class="glass p-4 rounded-2xl"><p class="text-[9px] text-gray-500">STATUS</p><p class="font-bold text-green-500">On-Way</p></div>
+            </div>
+
+            <button onclick="location.reload()" class="bg-white text-black px-12 py-4 rounded-full font-black hover:scale-105 transition shadow-xl">DONE</button>
+        </div>
+    </div>
+
+    <header class="h-screen flex flex-col items-center justify-center text-center px-4">
+        <div class="absolute w-[600px] h-[600px] bg-blue-600/10 blur-[150px] animate-pulse"></div>
+        <h1 id="hero-text" class="text-7xl md:text-[140px] font-black leading-none mb-6 opacity-0">DRINK<br><span class="text-transparent" style="-webkit-text-stroke: 1.5px white;">ELITE.</span></h1>
+        <p id="hero-sub" class="text-blue-500 tracking-[0.5em] font-bold uppercase opacity-0">India's Premium Digital Lounge</p>
+    </header>
+
+    <main class="px-6 md:px-20 py-20 bg-[#050508]">
+        <h2 class="text-4xl font-bold mb-16 text-center italic">WORLD CLASS <span class="text-blue-500">COLLECTION</span></h2>
+        <div id="grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-12">
+            </div>
+    </main>
+
+    <script>
+        // High Quality Drink Photos Array
+        const photos = [
+            "https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?w=500&q=80",
+            "https://images.unsplash.com/photo-1551024709-8f23befc6f87?w=500&q=80",
+            "https://images.unsplash.com/photo-1470337458703-46ad1756a187?w=500&q=80",
+            "https://images.unsplash.com/photo-1595981267035-7b04ca84a82d?w=500&q=80",
+            "https://images.unsplash.com/photo-1544145945-f904253d0c71?w=500&q=80",
+            "https://images.unsplash.com/photo-1563227812-0ea4c22e6cc8?w=500&q=80",
+            "https://images.unsplash.com/photo-1527281032234-50367a6366f7?w=500&q=80",
+            "https://images.unsplash.com/photo-1622483767028-3f66f32aef97?w=500&q=80"
+        ];
+        
+        const drinkNames = ["Gold Label Whisky", "Artic Vodka", "Blue Curacao", "Spiced Dark Rum", "Monster Energy", "Tequila Sunrise", "Craft Lager", "Vintage Red Wine"];
+        let cart = [];
+
+        // ON LOAD ANIMATIONS
+        window.addEventListener('load', () => {
+            gsap.to("#loader", { opacity: 0, duration: 1, onComplete: () => document.getElementById('loader').remove() });
+            gsap.to("#hero-text", { opacity: 1, y: -20, duration: 1.5, delay: 0.5 });
+            gsap.to("#hero-sub", { opacity: 1, duration: 1, delay: 1 });
+            renderDrinks();
+        });
+
+        // GENERATE 104 DRINKS
+        function renderDrinks() {
+            const grid = document.getElementById('grid');
+            for(let i=1; i<=104; i++) {
+                const img = photos[i % photos.length];
+                const name = `${drinkNames[i % drinkNames.length]} V${i}`;
+                const price = Math.floor(Math.random() * 14000) + 149;
+                
+                grid.innerHTML += `
+                    <div class="glass p-6 rounded-[3rem] drink-card flex flex-col justify-between opacity-0 translate-y-10 scroll-item">
+                        <div>
+                            <div class="h-72 rounded-[2.2rem] overflow-hidden mb-6">
+                                <img src="${img}" class="w-full h-full object-cover">
+                            </div>
+                            <h3 class="text-xl font-bold mb-1 italic">${name}</h3>
+                            <p class="text-gray-500 text-[10px] tracking-widest uppercase mb-6">Premium Spirits • Imported</p>
+                        </div>
+                        <div>
+                            <div class="flex justify-between items-center mb-6 px-2">
+                                <span class="text-2xl font-black italic">₹${price.toLocaleString('en-IN')}</span>
+                                <div class="flex items-center gap-4 bg-white/5 rounded-full px-4 py-1.5 border border-white/5">
+                                    <button onclick="this.nextElementSibling.innerText > 1 ? this.nextElementSibling.innerText-- : null" class="text-blue-500 font-bold hover:text-white">-</button>
+                                    <span class="qty font-bold text-sm">1</span>
+                                    <button onclick="this.previousElementSibling.innerText++" class="text-blue-500 font-bold hover:text-white">+</button>
+                                </div>
+                            </div>
+                            <button onclick="addToCart('${name}', ${price}, this)" class="w-full py-4 rounded-2xl bg-white text-black font-black hover:bg-blue-600 hover:text-white transition-all transform active:scale-95 shadow-lg">ADD TO CART</button>
+                        </div>
+                    </div>
+                `;
+            }
+
+            // Scroll Animation Trigger
+            gsap.utils.toArray('.scroll-item').forEach(box => {
+                gsap.to(box, {
+                    scrollTrigger: { trigger: box, start: "top 90%" },
+                    opacity: 1, y: 0, duration: 0.8
+                });
+            });
+        }
+
+        // CART LOGIC
+        function toggleCart() { document.getElementById('cart-drawer').classList.toggle('open'); }
+
+        function addToCart(name, price, btn) {
+            const qty = parseInt(btn.parentElement.querySelector('.qty').innerText);
+            const img = btn.parentElement.parentElement.querySelector('img').src;
+            cart.push({ name, price, qty, img });
+            updateCart();
+            if(!document.getElementById('cart-drawer').classList.contains('open')) toggleCart();
+        }
+
+        function updateCart() {
+            const itemsDiv = document.getElementById('cart-items');
+            const totalEl = document.getElementById('total-price');
+            const payTotal = document.getElementById('pay-total');
+            const badge = document.getElementById('cart-badge');
+            
+            badge.innerText = cart.length;
+            if(cart.length === 0) {
+                itemsDiv.innerHTML = `<p class="text-gray-500 text-center mt-20 italic">Your bar is empty...</p>`;
+            } else {
+                itemsDiv.innerHTML = cart.map((item, idx) => `
+                    <div class="flex items-center gap-4 glass p-4 rounded-2xl border-white/5 animate__animated animate__fadeInRight">
+                        <img src="${item.img}" class="w-16 h-16 rounded-xl object-cover">
+                        <div class="flex-grow">
+                            <h4 class="font-bold text-sm italic">${item.name}</h4>
+                            <p class="text-blue-400 font-bold">₹${item.price} x ${item.qty}</p>
+                        </div>
+                        <button onclick="cart.splice(${idx}, 1); updateCart();" class="text-red-500 hover:scale-125 transition">✕</button>
+                    </div>
+                `).join('');
+            }
+            const total = cart.reduce((acc, item) => acc + (item.price * item.qty), 0);
+            totalEl.innerText = `₹${total.toLocaleString('en-IN')}`;
+            payTotal.innerText = total.toLocaleString('en-IN');
+        }
+
+        // CHECKOUT & TRACKING
+        function openCheckout() { if(cart.length === 0) return alert("Bar is empty!"); document.getElementById('checkout-modal').classList.add('active'); }
+        function closeCheckout() { document.getElementById('checkout-modal').classList.remove('active'); }
+
+        function startTracking() {
+            document.getElementById('checkout-modal').classList.remove('active');
+            document.getElementById('tracking-modal').classList.add('active');
+            toggleCart();
+
+            let progress = 0;
+            const bar = document.getElementById('progress-bar');
+            const bike = document.getElementById('bike-icon');
+            const status = document.getElementById('status-text');
+
+            const interval = setInterval(() => {
+                progress += 0.5;
+                bar.style.width = progress + "%";
+                bike.style.left = progress + "%";
+
+                if(progress > 20) status.innerText = "Order Quality Checked ✅";
+                if(progress > 50) status.innerText = "Driver Rahul is near your area 🛵";
+                if(progress > 85) status.innerText = "Order Arriving! 🍾";
+                
+                if(progress >= 100) {
+                    clearInterval(interval);
+                    status.innerText = "Delivered! Cheers 🥂";
+                    status.classList.replace('text-blue-400', 'text-green-500');
+                }
+            }, 50); // Fast simulation
+        }
+    </script>
+</body>
+</html>
